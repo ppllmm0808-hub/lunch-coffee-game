@@ -1,0 +1,12 @@
+# 패키지 설치 폴더 (용량 매우 큼)
+node_modules/
+
+# 빌드 결과물 폴더 (용량 큼)
+.next/
+
+# 환경 변수 및 보안 파일
+.env.local
+.env.local.example
+
+# 기타 시스템 파일
+.DS_Store
