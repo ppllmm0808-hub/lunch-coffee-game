@@ -29,20 +29,20 @@ const meta: GamePackMeta = {
 
 // 라운드 선택 화면에서 표시할 미니게임 목록
 export const MINI_GAMES = [
-  { id: 'number' as const, emoji: '🔢', title: '숫자 예측', desc: '평균의 60%에 가장 가까운 숫자를 골라라' },
+  { id: 'card' as const, emoji: '🃏', title: '카드 게임', desc: '합이 10에 가장 가까운 사람이 이긴다' },
   { id: 'animal' as const, emoji: '🐾', title: '다수결 반대', desc: '가장 적은 사람이 선택할 동물을 골라라' },
   { id: 'timing' as const, emoji: '⏱️', title: '타이밍 챌린지', desc: '정확히 3.00초에 버튼 누르기' },
 ]
 
-type GameType = 'number' | 'animal' | 'timing'
+type GameType = 'card' | 'animal' | 'timing'
 
 // 라운드별 기본 게임 설정 (host가 선택 안 했을 때 폴백)
 const ROUND_CONFIGS: Omit<RoundConfig, 'roundNum'>[] = [
   {
-    timeLimitSec: 20,
-    gameType: 'number',
-    title: '숫자 예측',
-    instruction: '1~100 사이 숫자를 고르세요.\n모든 참가자 평균의 60%에 가장 가까운 사람이 이깁니다.',
+    timeLimitSec: 40,
+    gameType: 'card',
+    title: '카드 게임',
+    instruction: '카드 2장의 합을 10에 가깝게 만드세요.\n카드 1장을 교체할 수 있습니다 (1회만).',
   },
   {
     timeLimitSec: 20,
@@ -73,7 +73,7 @@ function getRatios(n: number): number[] {
 }
 
 function getRoundConfig(roundNum: number, settings: GameSettings): RoundConfig {
-  const typeMap: Record<GameType, number> = { number: 0, animal: 1, timing: 2 }
+  const typeMap: Record<GameType, number> = { card: 0, animal: 1, timing: 2 }
   const gameType = settings.currentGameType as GameType | undefined
   const idx = gameType !== undefined && typeMap[gameType] !== undefined
     ? typeMap[gameType]
@@ -85,7 +85,7 @@ function getRoundConfig(roundNum: number, settings: GameSettings): RoundConfig {
 function detectGameType(answers: Answer[]): GameType | null {
   if (answers.length === 0) return null
   const first = answers[0].value as Record<string, unknown>
-  if ('number' in first) return 'number'
+  if ('cards' in first) return 'card'
   if ('choice' in first) return 'animal'
   if ('ms' in first) return 'timing'
   return null
@@ -93,31 +93,33 @@ function detectGameType(answers: Answer[]): GameType | null {
 
 function calculateRoundScore(answers: Answer[], roundNum: number): RoundResult[] {
   const type = detectGameType(answers)
-  if (type === 'number') return calcNumber(answers)
+  if (type === 'card') return calcCard(answers)
   if (type === 'animal') return calcAnimal(answers)
   if (type === 'timing') return calcTiming(answers)
   // 폴백: 라운드 번호 기반
-  if (roundNum === 1) return calcNumber(answers)
+  if (roundNum === 1) return calcCard(answers)
   if (roundNum === 2) return calcAnimal(answers)
   return calcTiming(answers)
 }
 
-// 숫자 예측: 평균의 60%에 가장 가까운 숫자
-function calcNumber(answers: Answer[]): RoundResult[] {
-  const nums = answers.map((a) => {
+// 카드 게임: 두 장 합이 10에 가장 가까운 사람이 1등
+function calcCard(answers: Answer[]): RoundResult[] {
+  const sums = answers.map((a) => {
     const v = a.value as Record<string, unknown>
-    return { id: a.playerId, n: Number(v.number) || 50 }
+    const finalCards = v.finalCards as number[]
+    const sum = (finalCards?.[0] ?? 0) + (finalCards?.[1] ?? 0)
+    return { id: a.playerId, sum }
   })
-  const avg = nums.reduce((s, x) => s + x.n, 0) / nums.length
-  const target = avg * 0.6
+  const target = 10
+  const diffs = sums.map((x) => ({ ...x, diff: Math.abs(x.sum - target) }))
+  const minDiff = Math.min(...diffs.map((x) => x.diff))
 
-  return nums.map(({ id, n }) => {
-    const diff = Math.abs(n - target)
-    const score = Math.max(0, Math.round(100 - diff * 4))
+  return diffs.map(({ id, sum, diff }) => {
+    const score = diff === minDiff ? 100 : Math.max(0, Math.round(100 - (diff - minDiff) * 10))
     return {
       playerId: id,
       scoreDelta: score,
-      detail: `목표 ${target.toFixed(1)} / 선택 ${n} / 오차 ${diff.toFixed(1)} → ${score}점`,
+      detail: `카드 합 ${sum} (목표 10, 오차 ${diff}) → ${score}점`,
     }
   })
 }

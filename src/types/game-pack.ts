@@ -23,7 +23,7 @@ export interface RoundConfig {
   timeLimitSec: number          // 라운드당 제한 시간
   title: string                 // 'Round 1 — 숫자 예측'
   instruction: string           // 플레이어에게 보여줄 설명
-  gameType: 'number' | 'animal' | 'timing'  // 미니게임 타입
+  gameType: 'number' | 'animal' | 'timing' | 'card'  // 미니게임 타입
 }
 
 // 플레이어가 제출하는 답변 — 게임마다 value 형태가 다름

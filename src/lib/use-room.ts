@@ -10,6 +10,12 @@ export function useRoom(roomCode: string) {
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
 
+  async function forceRefresh() {
+    const [r, p] = await Promise.all([getRoom(roomCode), getPlayers(roomCode)])
+    if (r) setRoom(r)
+    setPlayers(p)
+  }
+
   useEffect(() => {
     if (!roomCode) return
 
@@ -49,7 +55,7 @@ export function useRoom(roomCode: string) {
     }
   }, [roomCode])
 
-  return { room, players, loading }
+  return { room, players, loading, forceRefresh }
 }
 
 // 내 플레이어 세션 관리 (localStorage 기반)

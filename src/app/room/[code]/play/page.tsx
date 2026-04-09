@@ -9,7 +9,7 @@ import { MINI_GAMES } from '@/packs/lunch-sagi'
 export default function PlayPage({ params }: { params: { code: string } }) {
   const { code } = params
   const router = useRouter()
-  const { room } = useRoom(code)
+  const { room, forceRefresh } = useRoom(code)
   const { myPlayer } = useMyPlayer(code)
   const [submitted, setSubmitted] = useState(false)
   const [timeLeft, setTimeLeft] = useState(20)
@@ -32,6 +32,13 @@ export default function PlayPage({ params }: { params: { code: string } }) {
     if (room?.status === 'finished') router.push(`/room/${code}/result`)
   }, [room?.status, code, router])
 
+  // 제출 후 폴링 — Realtime이 느리거나 안 올 때 대비, 모든 플레이어 적용
+  useEffect(() => {
+    if (!submitted) return
+    const interval = setInterval(() => forceRefresh(), 2000)
+    return () => clearInterval(interval)
+  }, [submitted])
+
   // 라운드 전환 시 상태 초기화 (playing 상태일 때만)
   useEffect(() => {
     if (room?.status !== 'playing') return
@@ -44,11 +51,14 @@ export default function PlayPage({ params }: { params: { code: string } }) {
     if (submittedRef.current || !myPlayerRef.current) return
     setSubmitted(true)
     submittedRef.current = true
-    await fetch('/api/answers', {
+    const res = await fetch('/api/answers', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ roomCode: code, playerId: myPlayerRef.current.id, value: v }),
     })
+    const data = await res.json()
+    // Realtime이 느릴 경우를 대비해 마지막 제출자가 직접 방 상태 갱신
+    if (data.allSubmitted) forceRefresh()
   }
 
   // 타이머 — playing 상태일 때만 동작
@@ -156,22 +166,13 @@ export default function PlayPage({ params }: { params: { code: string } }) {
         </div>
       ) : (
         <>
-          {/* 숫자 예측 */}
-          {roundConfig.gameType === 'number' && (
-            <div>
-              <input
-                type="number" min={1} max={100}
-                value={String(value.number ?? '')}
-                onChange={e => setValue({ number: parseInt(e.target.value) || 0 })}
-                placeholder="1 ~ 100"
-                style={{ width: '100%', padding: '16px 0', fontSize: 36, textAlign: 'center', border: '1.5px solid var(--color-border-secondary)', borderRadius: 10, background: 'var(--color-background-primary)', color: 'var(--color-text-primary)', boxSizing: 'border-box', marginBottom: 16 }}
-              />
-              <button
-                onClick={() => submitAnswer(value)}
-                style={{ width: '100%', padding: 14, borderRadius: 10, border: 'none', background: '#534AB7', color: '#fff', fontSize: 16, fontWeight: 500, cursor: 'pointer' }}>
-                선택 확정
-              </button>
-            </div>
+          {/* 카드 게임 */}
+          {roundConfig.gameType === 'card' && (
+            <CardRound
+              playerId={myPlayer?.id ?? ''}
+              roundNum={round}
+              onSubmit={v => submitAnswer(v)}
+            />
           )}
 
           {/* 다수결 반대 */}
@@ -203,6 +204,96 @@ export default function PlayPage({ params }: { params: { code: string } }) {
         </>
       )}
     </main>
+  )
+}
+
+function CardRound({ playerId, roundNum, onSubmit }: {
+  playerId: string
+  roundNum: number
+  onSubmit: (v: Record<string, unknown>) => void
+}) {
+  const [cards, setCards] = useState<[number, number]>(() => {
+    let seed = 0
+    for (const ch of (playerId + roundNum)) seed = (seed * 31 + ch.charCodeAt(0)) % 1_000_000_007
+    const c1 = (seed % 10) + 1
+    seed = (seed * 31 + 17) % 1_000_000_007
+    const c2 = (seed % 10) + 1
+    return [c1, c2]
+  })
+  const initialCards = useRef(cards)
+  const [replaced, setReplaced] = useState(false)
+  const [replacing, setReplacing] = useState(false)
+
+  function selectCardToReplace(index: 0 | 1) {
+    const newCard = Math.floor(Math.random() * 10) + 1
+    const newCards: [number, number] = [cards[0], cards[1]]
+    newCards[index] = newCard
+    setCards(newCards)
+    setReplaced(true)
+    setReplacing(false)
+  }
+
+  const sum = cards[0] + cards[1]
+
+  return (
+    <div>
+      <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--color-text-tertiary)', marginBottom: 8 }}>
+        합계: <strong style={{ color: 'var(--color-text-primary)', fontSize: 20 }}>{sum}</strong>
+        {' '}/ 목표: 10
+      </p>
+
+      <div style={{ display: 'flex', gap: 16, justifyContent: 'center', margin: '16px 0 8px' }}>
+        {cards.map((card, i) => (
+          <div
+            key={i}
+            onClick={() => replacing ? selectCardToReplace(i as 0 | 1) : undefined}
+            style={{
+              width: 110, height: 150, borderRadius: 14,
+              background: replacing ? '#FFF8E1' : 'var(--color-background-secondary)',
+              border: replacing ? '2.5px solid #F59E0B' : '2px solid var(--color-border-secondary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 56, fontWeight: 700,
+              cursor: replacing ? 'pointer' : 'default',
+              boxShadow: replacing ? '0 0 0 3px #FDE68A' : 'none',
+              transition: 'all 0.15s',
+            }}
+          >{card}</div>
+        ))}
+      </div>
+
+      {replacing && (
+        <p style={{ textAlign: 'center', fontSize: 13, color: '#F59E0B', marginBottom: 12 }}>
+          교체할 카드를 탭하세요
+        </p>
+      )}
+
+      <button
+        onClick={() => setReplacing(true)}
+        disabled={replaced || replacing}
+        style={{
+          width: '100%', padding: 12, borderRadius: 10, marginBottom: 10,
+          border: '1.5px solid var(--color-border-secondary)',
+          background: (replaced || replacing) ? 'var(--color-background-secondary)' : 'var(--color-background-primary)',
+          color: (replaced || replacing) ? 'var(--color-text-tertiary)' : 'var(--color-text-primary)',
+          fontSize: 15, fontWeight: 500,
+          cursor: (replaced || replacing) ? 'not-allowed' : 'pointer',
+        }}
+      >
+        {replaced ? '✅ 교체 완료' : replacing ? '교체할 카드 선택 중...' : '🔄 교체하기'}
+      </button>
+
+      {!replacing && (
+        <button
+          onClick={() => onSubmit({ cards: initialCards.current, finalCards: cards, replaced })}
+          style={{
+            width: '100%', padding: 14, borderRadius: 10, border: 'none',
+            background: '#534AB7', color: '#fff', fontSize: 16, fontWeight: 500, cursor: 'pointer',
+          }}
+        >
+          확정
+        </button>
+      )}
+    </div>
   )
 }
 
