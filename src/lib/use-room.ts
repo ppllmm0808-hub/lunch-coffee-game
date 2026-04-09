@@ -49,9 +49,17 @@ export function useRoom(roomCode: string) {
       }, () => { getPlayers(roomCode).then(p => setPlayers(p)) })
       .subscribe()
 
+    // 폴링 — Realtime이 느리거나 안 올 때 모든 상태 전환 보장
+    const poll = setInterval(async () => {
+      const [r, p] = await Promise.all([getRoom(roomCode), getPlayers(roomCode)])
+      if (r) setRoom(r)
+      setPlayers(p)
+    }, 3000)
+
     return () => {
       roomSub.unsubscribe()
       playerSub.unsubscribe()
+      clearInterval(poll)
     }
   }, [roomCode])
 
