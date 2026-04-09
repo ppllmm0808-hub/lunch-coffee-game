@@ -136,6 +136,41 @@ export async function finishGame(roomCode: string) {
   return supabase.from('rooms').update({ status: 'finished' }).eq('code', roomCode)
 }
 
+// 방장이 다음 라운드 게임 선택 (레디 단계로 — 아직 playing 아님)
+export async function selectGameForNextRound(
+  roomCode: string,
+  nextRound: number,
+  gameType: string
+) {
+  const { data } = await supabase.from('rooms').select('settings').eq('code', roomCode).single()
+  const settings = { ...(data?.settings ?? {}), nextGameType: gameType, nextRound, readyPlayers: [] }
+  return supabase.from('rooms').update({ settings }).eq('code', roomCode)
+}
+
+// 플레이어 레디 (중복 방지)
+export async function markPlayerReady(roomCode: string, playerId: string) {
+  const { data } = await supabase.from('rooms').select('settings').eq('code', roomCode).single()
+  const settings = data?.settings ?? {}
+  const prev = (settings.readyPlayers as string[] | undefined) ?? []
+  if (prev.includes(playerId)) return
+  const readyPlayers = [...prev, playerId]
+  return supabase.from('rooms').update({ settings: { ...settings, readyPlayers } }).eq('code', roomCode)
+}
+
+// 방장이 스타트 (모두 레디 확인 후)
+export async function startNextRound(roomCode: string) {
+  const { data } = await supabase.from('rooms').select('settings').eq('code', roomCode).single()
+  const settings = data?.settings ?? {}
+  const nextRound = settings.nextRound as number
+  const nextGameType = settings.nextGameType as string
+  const newSettings = { ...settings, currentGameType: nextGameType, readyPlayers: [] }
+  return supabase.from('rooms').update({
+    status: 'playing',
+    current_round: nextRound,
+    settings: newSettings,
+  }).eq('code', roomCode)
+}
+
 // ── Realtime 구독 ──────────────────────────────────────────
 
 export function subscribeToRoom(roomCode: string, onUpdate: (room: Room) => void) {
