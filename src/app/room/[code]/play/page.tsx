@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useRoom, useMyPlayer } from '@/lib/use-room'
 import { getGamePack } from '@/packs'
-import { finishGame, selectGameForNextRound, markPlayerReady, startNextRound } from '@/lib/supabase'
+import { finishGame, selectNextGame } from '@/lib/supabase'
 import { MINI_GAMES } from '@/packs/lunch-sagi'
 
 export default function PlayPage({ params }: { params: { code: string } }) {
@@ -86,85 +86,55 @@ export default function PlayPage({ params }: { params: { code: string } }) {
 
   // ─── 라운드 종료 화면 ───────────────────────────────────────
   if (room.status === 'round_end') {
-    const nextGameType = room.settings.nextGameType as string | undefined
-    const readyPlayers = (room.settings.readyPlayers as string[] | undefined) ?? []
-    const myId = myPlayer?.id ?? ''
-    const isReady = readyPlayers.includes(myId)
-    const allReady = players.length > 0 && readyPlayers.length >= players.length
-
     return (
       <main style={{ maxWidth: 400, margin: '0 auto', padding: '1.5rem 1rem', fontFamily: 'var(--font-sans)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 28, paddingTop: 16 }}>
+        <div style={{ textAlign: 'center', marginBottom: 32, paddingTop: 16 }}>
           <div style={{ fontSize: 44, marginBottom: 10 }}>🎯</div>
           <h2 style={{ fontSize: 20, fontWeight: 600, margin: 0 }}>라운드 {round} 완료!</h2>
           <p style={{ fontSize: 14, color: 'var(--color-text-tertiary)', marginTop: 8 }}>점수는 마지막에 공개됩니다</p>
         </div>
 
-        {/* 마지막 라운드: 최종 결과 */}
-        {isLastRound && (
-          isHost
-            ? <button onClick={() => finishGame(code)} style={{ width: '100%', padding: 14, borderRadius: 10, border: 'none', background: '#534AB7', color: '#fff', fontSize: 16, fontWeight: 500, cursor: 'pointer' }}>최종 결과 보기</button>
-            : <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--color-text-tertiary)' }}>방장이 결과를 확인하는 중...</p>
+        {/* 방장 — 마지막 라운드: 최종 결과 버튼 */}
+        {isHost && isLastRound && (
+          <button
+            onClick={() => finishGame(code)}
+            style={{ width: '100%', padding: 14, borderRadius: 10, border: 'none', background: '#534AB7', color: '#fff', fontSize: 16, fontWeight: 500, cursor: 'pointer' }}>
+            최종 결과 보기
+          </button>
         )}
 
-        {/* 다음 라운드 — STEP 1: 방장이 게임 선택 */}
-        {!isLastRound && !nextGameType && (
+        {/* 방장 — 다음 라운드: 게임 선택 → 즉시 시작 */}
+        {isHost && !isLastRound && (
           <>
-            {isHost && (
-              <>
-                <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>다음 라운드 게임 선택</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {MINI_GAMES.map(game => (
-                    <button
-                      key={game.id}
-                      onClick={() => selectGameForNextRound(code, round + 1, game.id)}
-                      style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 12, border: '1.5px solid var(--color-border-secondary)', background: 'var(--color-background-primary)', cursor: 'pointer', textAlign: 'left' }}>
-                      <span style={{ fontSize: 28 }}>{game.emoji}</span>
-                      <div>
-                        <div style={{ fontSize: 15, fontWeight: 500 }}>{game.title}</div>
-                        <div style={{ fontSize: 13, color: 'var(--color-text-tertiary)', marginTop: 2 }}>{game.desc}</div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-            {!isHost && (
-              <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--color-text-tertiary)' }}>방장이 다음 게임을 선택하는 중...</p>
-            )}
-          </>
-        )}
-
-        {/* 다음 라운드 — STEP 2: 모두 레디 */}
-        {!isLastRound && nextGameType && (
-          <>
-            <div style={{ textAlign: 'center', background: 'var(--color-background-secondary)', borderRadius: 10, padding: '12px 16px', marginBottom: 20 }}>
-              <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)', margin: '0 0 2px' }}>다음 게임</p>
-              <p style={{ fontSize: 16, fontWeight: 600, margin: 0 }}>
-                {MINI_GAMES.find(g => g.id === nextGameType)?.emoji} {MINI_GAMES.find(g => g.id === nextGameType)?.title}
-              </p>
+            <p style={{ fontSize: 14, fontWeight: 600, marginBottom: 12 }}>다음 라운드 게임 선택</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {MINI_GAMES.map(game => (
+                <button
+                  key={game.id}
+                  onClick={() => selectNextGame(code, round + 1, game.id)}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 14,
+                    padding: '14px 16px', borderRadius: 12,
+                    border: '1.5px solid var(--color-border-secondary)',
+                    background: 'var(--color-background-primary)',
+                    cursor: 'pointer', textAlign: 'left',
+                  }}>
+                  <span style={{ fontSize: 28 }}>{game.emoji}</span>
+                  <div>
+                    <div style={{ fontSize: 15, fontWeight: 500 }}>{game.title}</div>
+                    <div style={{ fontSize: 13, color: 'var(--color-text-tertiary)', marginTop: 2 }}>{game.desc}</div>
+                  </div>
+                </button>
+              ))}
             </div>
-
-            <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)', textAlign: 'center', marginBottom: 12 }}>
-              레디 {readyPlayers.length}/{players.length}
-            </p>
-
-            <button
-              onClick={() => markPlayerReady(code, myId)}
-              disabled={isReady}
-              style={{ width: '100%', padding: 14, borderRadius: 10, border: 'none', background: isReady ? '#22C55E' : '#534AB7', color: '#fff', fontSize: 16, fontWeight: 500, cursor: isReady ? 'not-allowed' : 'pointer', marginBottom: 10 }}>
-              {isReady ? '✅ 레디 완료' : '레디'}
-            </button>
-
-            {isHost && (
-              <button
-                onClick={() => startNextRound(code)}
-                disabled={!allReady}
-                style={{ width: '100%', padding: 14, borderRadius: 10, border: 'none', background: allReady ? '#F59E0B' : 'var(--color-background-secondary)', color: allReady ? '#fff' : 'var(--color-text-tertiary)', fontSize: 16, fontWeight: 500, cursor: allReady ? 'pointer' : 'not-allowed' }}>
-                {allReady ? '스타트!' : `스타트 (${readyPlayers.length}/${players.length} 레디)`}
-              </button>
-            )}
           </>
+        )}
+
+        {/* 일반 참가자 */}
+        {!isHost && (
+          <p style={{ textAlign: 'center', fontSize: 14, color: 'var(--color-text-tertiary)' }}>
+            {isLastRound ? '방장이 결과를 확인하는 중...' : '방장이 다음 게임을 선택하는 중...'}
+          </p>
         )}
       </main>
     )
