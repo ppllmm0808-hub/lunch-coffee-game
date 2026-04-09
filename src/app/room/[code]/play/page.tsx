@@ -35,9 +35,9 @@ export default function PlayPage({ params }: { params: { code: string } }) {
   // 제출 후 폴링 — Realtime이 느리거나 안 올 때 대비, 모든 플레이어 적용
   useEffect(() => {
     if (!submitted) return
-    const interval = setInterval(() => forceRefresh(), 2000)
+    const interval = setInterval(forceRefresh, 1500)
     return () => clearInterval(interval)
-  }, [submitted])
+  }, [submitted, forceRefresh])
 
   // 라운드 전환 시 상태 초기화 (playing 상태일 때만)
   useEffect(() => {

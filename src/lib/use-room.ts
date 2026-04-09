@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { supabase, getRoom, getPlayers } from '@/lib/supabase'
 import type { Room, Player } from '@/types/game-pack'
 
@@ -10,11 +10,12 @@ export function useRoom(roomCode: string) {
   const [players, setPlayers] = useState<Player[]>([])
   const [loading, setLoading] = useState(true)
 
-  async function forceRefresh() {
+  // useCallback으로 안정화 — stale closure 방지
+  const forceRefresh = useCallback(async () => {
     const [r, p] = await Promise.all([getRoom(roomCode), getPlayers(roomCode)])
     if (r) setRoom(r)
     setPlayers(p)
-  }
+  }, [roomCode])
 
   useEffect(() => {
     if (!roomCode) return
@@ -49,12 +50,12 @@ export function useRoom(roomCode: string) {
       }, () => { getPlayers(roomCode).then(p => setPlayers(p)) })
       .subscribe()
 
-    // 폴링 — Realtime이 느리거나 안 올 때 모든 상태 전환 보장
+    // 폴링 — Realtime이 느리거나 안 올 때 모든 상태 전환 보장 (2초)
     const poll = setInterval(async () => {
       const [r, p] = await Promise.all([getRoom(roomCode), getPlayers(roomCode)])
       if (r) setRoom(r)
       setPlayers(p)
-    }, 3000)
+    }, 2000)
 
     return () => {
       roomSub.unsubscribe()
