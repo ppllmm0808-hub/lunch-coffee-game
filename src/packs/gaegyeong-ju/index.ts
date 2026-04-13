@@ -40,11 +40,12 @@ export const gaegyeongJuPack: GamePack = {
 
   getRoundConfig(roundNum: number, _settings: GameSettings): RoundConfig {
     return {
-      roundNum,
-      timeLimitSec: 15,
-      title: `${roundNum}경기`,
-      instruction: '달릴 개를 한 마리 고르세요. 결과는 운과 변수에 따라 결정됩니다.',
-    }
+  roundNum,
+  timeLimitSec: 15,
+  gameType: 'timing' as const,
+  title: `${roundNum}경기`,
+  instruction: '달릴 개를 한 마리 고르세요. 결과는 운과 변수에 따라 결정됩니다.',
+}
   },
 
   calculateRoundScore(answers: Answer[], _roundNum: number): RoundResult[] {
