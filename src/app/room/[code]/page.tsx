@@ -364,12 +364,7 @@ function MoleRoundInline({ targetSec, onSubmit }: {
           {targetSec}
         </div>
       )}
-      {started && isOver && (
-        <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 8, color: '#E24B4A' }}>
-          ⚠️ 시간 초과! -{penalty}점
-        </div>
-      )}
-
+      
       <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>
         목표: {targetSec}초 이내
       </p>
