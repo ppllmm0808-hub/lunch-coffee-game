@@ -21,9 +21,9 @@ export interface GamePackMeta {
 export interface RoundConfig {
   roundNum: number              // 1, 2, 3
   timeLimitSec: number          // 라운드당 제한 시간
-  title: string                 // 'Round 1 — 숫자 예측'
-  instruction: string           // 플레이어에게 보여줄 설명
-  gameType: 'number' | 'animal' | 'timing'  // 미니게임 타입
+  title: string                 // '카드 게임'
+  instruction: string           // '카드 2장을 받았습니다. 합이 10에 가장 가까운 사람이 이깁니다. 1장 교체 가능합니다.'
+  gameType: 'card' | 'animal' | 'timing'  // 미니게임 타입
 }
 
 // 플레이어가 제출하는 답변 — 게임마다 value 형태가 다름
@@ -43,16 +43,26 @@ export interface RoundResult {
 }
 
 // 최종 결과 (점심값 분담 등)
+export interface RoundSummary {
+  title: string
+  rankings: {
+    playerId: string
+    nickname: string
+    detail: string
+  }[]
+}
+
 export interface FinalResult {
   rankings: {
     rank: number
     playerId: string
     nickname: string
     totalScore: number
-    ratio: number               // 0.0 ~ 1.0 (분담 비율)
-    amount: number              // 실제 금액
+    ratio: number
+    amount: number
   }[]
   totalAmount: number
+  roundResults?: RoundSummary[]
 }
 
 // 게임 설정 (방장이 변경 가능)

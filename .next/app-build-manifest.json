@@ -10,6 +10,26 @@
       "static/chunks/main-app.js",
       "static/css/css-src_app_globals_css.css",
       "static/chunks/app/layout.js"
+    ],
+    "/room/[code]/wait/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/room/[code]/wait/page.js"
+    ],
+    "/room/[code]/play/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/room/[code]/play/page.js"
+    ],
+    "/room/[code]/result/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/room/[code]/result/page.js"
+    ],
+    "/room/[code]/join/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/room/[code]/join/page.js"
     ]
   }
 }

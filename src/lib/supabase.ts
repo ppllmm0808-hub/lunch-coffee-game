@@ -159,6 +159,11 @@ export function subscribeToPlayers(roomCode: string, onUpdate: (players: Player[
     .subscribe()
 }
 
+export async function updateMoleTargetSec(roomCode: string, sec: number) {
+  const { data } = await supabase.from('rooms').select('settings').eq('code', roomCode).single()
+  const settings = { ...(data?.settings ?? {}), moleTargetSec: sec }
+  return supabase.from('rooms').update({ settings }).eq('code', roomCode)
+}
 export function subscribeToAnswers(
   roomCode: string, roundNum: number, onUpdate: (answers: DbAnswer[]) => void
 ) {

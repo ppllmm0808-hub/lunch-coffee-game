@@ -20,9 +20,7 @@ export default function ResultPage({ params }: { params: { code: string } }) {
         const scores: Record<string, number> = {}
         players.forEach(p => { scores[p.id] = p.score })
         setFinalResult(pack.calculateFinalResult(scores, players, room.settings))
-      } catch {
-        // 게임팩 로드 실패 시 무시
-      }
+      } catch {}
     }
   }, [room?.status, players.length])
 
@@ -30,37 +28,71 @@ export default function ResultPage({ params }: { params: { code: string } }) {
     <div style={{ padding:'2rem', textAlign:'center', color:'var(--color-text-tertiary)' }}>결과 계산 중...</div>
   )
 
-  const totalAmount = (room?.settings.totalAmount as number) ?? 35000
-
   return (
     <main style={{ maxWidth:400, margin:'0 auto', padding:'1.5rem 1rem', fontFamily:'var(--font-sans)' }}>
+
+      {/* 헤더 */}
       <div style={{ textAlign:'center', marginBottom:24 }}>
         <div style={{ fontSize:40, marginBottom:8 }}>🏆</div>
-        <h2 style={{ fontSize:20, fontWeight:500, margin:0 }}>최종 결과</h2>
-        <p style={{ fontSize:13, color:'var(--color-text-tertiary)', marginTop:4 }}>오늘의 점심 분담</p>
+        <h2 style={{ fontSize:20, fontWeight:600, margin:0 }}>최종 결과</h2>
       </div>
 
-      {finalResult.rankings.map((r, i) => (
-        <div key={r.playerId} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'12px 14px', borderRadius:10, border:'0.5px solid var(--color-border-tertiary)', background:'var(--color-background-primary)', marginBottom:8 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-            <span style={{ fontSize:20 }}>{RANK_EMOJI[i] ?? '💀'}</span>
-            <span style={{ fontSize:15, fontWeight:500 }}>{r.nickname}</span>
-          </div>
-          <div style={{ textAlign:'right' }}>
-            <div style={{ fontSize:17, fontWeight:500 }}>{r.amount.toLocaleString()}원</div>
-            <div style={{ fontSize:12, color:'var(--color-text-tertiary)' }}>{Math.round(r.ratio*100)}%</div>
-          </div>
+      {/* 라운드별 결과 */}
+      {finalResult.roundResults?.map((round, ri) => (
+        <div key={ri} style={{ marginBottom:20 }}>
+          <p style={{ fontSize:13, fontWeight:600, color:'var(--color-text-tertiary)', marginBottom:8 }}>
+            라운드 {ri + 1} — {round.title}
+          </p>
+          {round.rankings.map((r, i) => (
+            <div key={r.playerId} style={{
+              display:'flex', alignItems:'center', justifyContent:'space-between',
+              padding:'10px 14px', borderRadius:10,
+              border:'0.5px solid var(--color-border-tertiary)',
+              background:'var(--color-background-primary)',
+              marginBottom:6,
+            }}>
+              <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <span style={{ fontSize:18 }}>{RANK_EMOJI[i] ?? '💀'}</span>
+                <span style={{ fontSize:14, fontWeight:500 }}>{r.nickname}</span>
+              </div>
+              <span style={{ fontSize:13, color:'var(--color-text-tertiary)' }}>{r.detail}</span>
+            </div>
+          ))}
         </div>
       ))}
 
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'12px 14px', borderRadius:10, background:'var(--color-background-secondary)', marginTop:4, marginBottom:24 }}>
-        <span style={{ fontSize:14, fontWeight:500 }}>총 점심 금액</span>
-        <span style={{ fontSize:16, fontWeight:500 }}>{totalAmount.toLocaleString()}원</span>
+      {/* 최종 순위 */}
+      <div style={{ marginBottom:24 }}>
+        <p style={{ fontSize:13, fontWeight:600, color:'var(--color-text-tertiary)', marginBottom:8 }}>
+          🏅 최종 순위
+        </p>
+        {finalResult.rankings.map((r, i) => (
+          <div key={r.playerId} style={{
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+            padding:'12px 14px', borderRadius:10,
+            border: i === 0 ? '1.5px solid #534AB7' : '0.5px solid var(--color-border-tertiary)',
+            background: i === 0 ? '#EEEDFE' : 'var(--color-background-primary)',
+            marginBottom:8,
+          }}>
+            <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+              <span style={{ fontSize:20 }}>{RANK_EMOJI[i] ?? '💀'}</span>
+              <span style={{ fontSize:15, fontWeight:600 }}>{r.nickname}</span>
+            </div>
+            <span style={{ fontSize:13, color:'var(--color-text-tertiary)' }}>{r.totalScore}점</span>
+          </div>
+        ))}
       </div>
 
-      <button onClick={() => router.push('/')} style={{ width:'100%', padding:14, borderRadius:10, border:'none', background:'#534AB7', color:'#fff', fontSize:16, fontWeight:500, cursor:'pointer' }}>
-        새 게임 시작
+      {/* 다음 게임 버튼 */}
+      <button
+        onClick={() => router.push('/')}
+        style={{
+          width:'100%', padding:14, borderRadius:10, border:'none',
+          background:'#534AB7', color:'#fff', fontSize:16, fontWeight:500, cursor:'pointer'
+        }}>
+        다음 게임 시작
       </button>
+
     </main>
   )
 }

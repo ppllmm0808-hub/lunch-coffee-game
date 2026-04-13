@@ -1,9 +1,3 @@
-// ============================================================
-// 점심 사기 게임팩 — MVP 첫 번째 게임
-// GamePack 인터페이스를 완전히 구현한 예시
-// 나중에 개경주도 이 구조 그대로 복사해서 만들면 됨
-// ============================================================
-
 import type {
   GamePack,
   GamePackMeta,
@@ -27,28 +21,26 @@ const meta: GamePackMeta = {
   emoji: '🍱',
 }
 
-// 라운드 선택 화면에서 표시할 미니게임 목록
 export const MINI_GAMES = [
-  { id: 'number' as const, emoji: '🔢', title: '숫자 예측', desc: '평균의 60%에 가장 가까운 숫자를 골라라' },
-  { id: 'animal' as const, emoji: '🐾', title: '다수결 반대', desc: '가장 적은 사람이 선택할 동물을 골라라' },
+  { id: 'card' as const, emoji: '🃏', title: '카드 게임', desc: '합이 19에 가장 가까운 사람이 이긴다' },
+  { id: 'mole' as const, emoji: '🦔', title: '두더지 게임', desc: '1분 안에 두더지를 최대한 많이 잡아라!' },
   { id: 'timing' as const, emoji: '⏱️', title: '타이밍 챌린지', desc: '정확히 3.00초에 버튼 누르기' },
 ]
 
-type GameType = 'number' | 'animal' | 'timing'
+type GameType = 'card' | 'mole' | 'timing'
 
-// 라운드별 기본 게임 설정 (host가 선택 안 했을 때 폴백)
 const ROUND_CONFIGS: Omit<RoundConfig, 'roundNum'>[] = [
   {
-    timeLimitSec: 20,
-    gameType: 'number',
-    title: '숫자 예측',
-    instruction: '1~100 사이 숫자를 고르세요.\n모든 참가자 평균의 60%에 가장 가까운 사람이 이깁니다.',
+    timeLimitSec: 15,
+    gameType: 'card',
+    title: '카드 게임',
+    instruction: '카드 2장을 받았습니다. 합이 19에 가장 가까운 사람이 이깁니다.\n카드 1장을 교체하거나, 그대로 확정할 수 있습니다.',
   },
   {
-    timeLimitSec: 20,
-    gameType: 'animal',
-    title: '다수결 반대',
-    instruction: '가장 적은 사람이 선택할 것 같은 동물을 고르세요.',
+    timeLimitSec: 90,
+    gameType: 'mole',
+    title: '두더지 게임',
+    instruction: '두더지가 나타나면 빠르게 탭하세요!\n⚠️ STOP 버튼을 누르는 순간 즉시 종료됩니다.\n실수로 눌러도 되돌릴 수 없어요!\n목표 시간을 넘기면 10초마다 -10점!\n신중하게, 하지만 빠르게!',
   },
   {
     timeLimitSec: 30,
@@ -58,12 +50,9 @@ const ROUND_CONFIGS: Omit<RoundConfig, 'roundNum'>[] = [
   },
 ]
 
-// 인원 수에 따라 점심값 분담 비율 계산 (1등~꼴지 순)
-// 2명: [0, 1.0] / 3명: [0, 0.30, 0.70] / 4명+: 꼴지부터 50%·30%·20% 역순 배분
 function getRatios(n: number): number[] {
   if (n === 2) return [0, 1.0]
   if (n === 3) return [0, 0.30, 0.70]
-  // n >= 4: 하위 3명만 부담, 나머지 0%
   const bottom = [0.50, 0.30, 0.20]
   const ratios = Array(n).fill(0)
   for (let i = 0; i < Math.min(bottom.length, n - 1); i++) {
@@ -73,7 +62,7 @@ function getRatios(n: number): number[] {
 }
 
 function getRoundConfig(roundNum: number, settings: GameSettings): RoundConfig {
-  const typeMap: Record<GameType, number> = { number: 0, animal: 1, timing: 2 }
+  const typeMap: Record<GameType, number> = { card: 0, mole: 1, timing: 2 }
   const gameType = settings.currentGameType as GameType | undefined
   const idx = gameType !== undefined && typeMap[gameType] !== undefined
     ? typeMap[gameType]
@@ -81,69 +70,81 @@ function getRoundConfig(roundNum: number, settings: GameSettings): RoundConfig {
   return { roundNum, ...ROUND_CONFIGS[idx] }
 }
 
-// 답변 value 구조로 게임 타입 자동 감지
 function detectGameType(answers: Answer[]): GameType | null {
   if (answers.length === 0) return null
   const first = answers[0].value as Record<string, unknown>
-  if ('number' in first) return 'number'
-  if ('choice' in first) return 'animal'
+  if ('cards' in first) return 'card'
+  if ('moleCount' in first) return 'mole'
   if ('ms' in first) return 'timing'
   return null
 }
 
 function calculateRoundScore(answers: Answer[], roundNum: number): RoundResult[] {
   const type = detectGameType(answers)
-  if (type === 'number') return calcNumber(answers)
-  if (type === 'animal') return calcAnimal(answers)
+  if (type === 'card') return calcCard(answers)
+  if (type === 'mole') return calcMole(answers)
   if (type === 'timing') return calcTiming(answers)
-  // 폴백: 라운드 번호 기반
-  if (roundNum === 1) return calcNumber(answers)
-  if (roundNum === 2) return calcAnimal(answers)
+  if (roundNum === 1) return calcCard(answers)
+  if (roundNum === 2) return calcMole(answers)
   return calcTiming(answers)
 }
 
-// 숫자 예측: 평균의 60%에 가장 가까운 숫자
-function calcNumber(answers: Answer[]): RoundResult[] {
-  const nums = answers.map((a) => {
+function calcCard(answers: Answer[]): RoundResult[] {
+  const sums = answers.map((a) => {
     const v = a.value as Record<string, unknown>
-    return { id: a.playerId, n: Number(v.number) || 50 }
+    const finalCards = (v.finalCards ?? v.cards) as number[] | undefined
+    const sum = (finalCards?.[0] ?? 0) + (finalCards?.[1] ?? 0)
+    return { id: a.playerId, sum }
   })
-  const avg = nums.reduce((s, x) => s + x.n, 0) / nums.length
-  const target = avg * 0.6
+  const target = 19
+  const diffs = sums.map((x) => ({ ...x, diff: Math.abs(x.sum - target) }))
+  const minDiff = Math.min(...diffs.map((x) => x.diff))
 
-  return nums.map(({ id, n }) => {
-    const diff = Math.abs(n - target)
-    const score = Math.max(0, Math.round(100 - diff * 4))
+  return diffs.map(({ id, sum, diff }) => {
+    const score = diff === minDiff ? 100 : Math.max(0, Math.round(100 - (diff - minDiff) * 10))
     return {
       playerId: id,
       scoreDelta: score,
-      detail: `목표 ${target.toFixed(1)} / 선택 ${n} / 오차 ${diff.toFixed(1)} → ${score}점`,
+      detail: `카드 합 ${sum} (목표 19, 오차 ${diff}) → ${score}점`,
     }
   })
 }
 
-// 다수결 반대: 가장 적게 선택된 것 = 고득점
-function calcAnimal(answers: Answer[]): RoundResult[] {
-  const counts: Record<string, number> = {}
-  answers.forEach((a) => {
-    const v = String((a.value as Record<string, unknown>).choice ?? a.value)
-    counts[v] = (counts[v] || 0) + 1
-  })
-  const minCount = Math.min(...Object.values(counts))
-
+function calcMole(answers: Answer[]): RoundResult[] {
   return answers.map((a) => {
-    const v = String((a.value as Record<string, unknown>).choice ?? a.value)
-    const isRare = counts[v] === minCount
-    const score = isRare ? 100 : Math.max(0, 100 - (counts[v] - minCount) * 25)
+    const v = a.value as Record<string, unknown>
+    const moleCount = Number(v.moleCount ?? 0)
+    const elapsedSec = Number(v.elapsedSec ?? 0)
+    const targetSec = Number(v.targetSec ?? 30)
+    const over = Math.max(0, elapsedSec - targetSec)
+
+    let penalty = 0
+    let detail = ''
+
+    if (over >= 30) {
+      // 30초 이상 초과 → 0점
+      return {
+        playerId: a.playerId,
+        scoreDelta: 0,
+        detail: `두더지 ${moleCount}마리 (${over}초 초과) → 0점`,
+      }
+    } else if (over >= 20) {
+      penalty = 200
+    } else if (over >= 10) {
+      penalty = 150
+    } else if (over > 0) {
+      penalty = 100
+    }
+
+    const score = Math.max(0, moleCount * 10 - penalty)
     return {
       playerId: a.playerId,
       scoreDelta: score,
-      detail: `${v} 선택 (${counts[v]}명) → ${score}점`,
+      detail: `두더지 ${moleCount}마리${penalty > 0 ? ` (패널티 -${penalty})` : ''} → ${score}점`,
     }
   })
 }
 
-// 타이밍 챌린지: 3.00초에 얼마나 가까운지
 function calcTiming(answers: Answer[]): RoundResult[] {
   return answers.map((a) => {
     const ms = Number((a.value as Record<string, unknown>).ms) || 0
@@ -163,7 +164,6 @@ function calculateFinalResult(
   settings: GameSettings
 ): FinalResult {
   const totalAmount = (settings.totalAmount as number) || 35000
-
   const ratios = getRatios(players.length)
   const ranked = [...players]
     .sort((a, b) => (scores[b.id] || 0) - (scores[a.id] || 0))
@@ -179,10 +179,23 @@ function calculateFinalResult(
       }
     })
 
-  return { rankings: ranked, totalAmount }
+  const roundResults = (settings.roundHistory as {
+    title: string
+    results: { playerId: string; detail: string }[]
+  }[] | undefined)?.map(round => ({
+    title: round.title,
+    rankings: round.results
+      .sort((a, b) => (scores[b.playerId] || 0) - (scores[a.playerId] || 0))
+      .map(r => ({
+        playerId: r.playerId,
+        nickname: players.find(p => p.id === r.playerId)?.nickname ?? '',
+        detail: r.detail,
+      }))
+  }))
+
+  return { rankings: ranked, totalAmount, roundResults }
 }
 
-// GamePack 인터페이스 구현체 export
 export const lunchSagiPack: GamePack = {
   meta,
   getRoundConfig,

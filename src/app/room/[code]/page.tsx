@@ -1,11 +1,5 @@
 'use client'
 
-// ============================================================
-// 게임 메인 페이지 — 라운드 오케스트레이터
-// GamePack 인터페이스를 통해 어떤 게임이든 동일하게 처리
-// 이 파일은 게임 종류가 바뀌어도 수정 안 해도 됨
-// ============================================================
-
 import { useEffect, useState, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import { getGamePack } from '@/packs'
@@ -16,10 +10,10 @@ import {
   subscribeToRoom,
   subscribeToPlayers,
   updateRoomStatus,
+  updateMoleTargetSec,
 } from '@/lib/supabase'
 import type { Room, Player } from '@/types/game-pack'
 
-// 화면 상태
 type Screen = 'loading' | 'waiting' | 'round_play' | 'round_result' | 'final'
 
 export default function GamePage() {
@@ -32,13 +26,16 @@ export default function GamePage() {
   const [myPlayer, setMyPlayer] = useState<Player | null>(null)
   const [submitted, setSubmitted] = useState(false)
   const [answerCount, setAnswerCount] = useState(0)
+  const [moleTargetSec, setMoleTargetSec] = useState(30)
+  const [storedPlayerId, setStoredPlayerId] = useState('')
 
-  // 내 플레이어 ID는 로컬스토리지에서 (home에서 저장한 snake_case 객체)
-  const storedPlayerId = typeof window !== 'undefined'
-    ? (() => { try { const r = JSON.parse(localStorage.getItem(`player-${roomCode}`) ?? '{}'); return (r.id ?? '') as string } catch { return '' } })()
-    : ''
+  useEffect(() => {
+    try {
+      const r = JSON.parse(localStorage.getItem(`player-${roomCode}`) ?? '{}')
+      setStoredPlayerId((r.id ?? '') as string)
+    } catch { /* ignore */ }
+  }, [roomCode])
 
-  // 초기 로드
   useEffect(() => {
     if (!roomCode) return
     loadRoom()
@@ -47,20 +44,18 @@ export default function GamePage() {
   async function loadRoom() {
     const [r, ps] = await Promise.all([getRoom(roomCode), getPlayers(roomCode)])
     if (!r) { setScreen('loading'); return }
-
     setRoom(r)
     setPlayers(ps)
     setMyPlayer(ps.find((p) => p.id === storedPlayerId) ?? null)
     setScreen(r.status === 'waiting' ? 'waiting' : mapStatusToScreen(r.status))
   }
 
-  // 실시간 방 상태 구독
   useEffect(() => {
     const roomSub = subscribeToRoom(roomCode, (updated) => {
       setRoom(updated)
       setScreen(mapStatusToScreen(updated.status))
       if (updated.status === 'playing') {
-        setSubmitted(false)   // 라운드 시작 시 제출 상태 초기화
+        setSubmitted(false)
         setAnswerCount(0)
       }
     })
@@ -76,26 +71,21 @@ export default function GamePage() {
     }
   }, [roomCode, storedPlayerId])
 
-  // 답변 제출 — GamePack은 여기서 직접 쓰지 않음 (서버에서 계산)
   const handleSubmit = useCallback(async (value: unknown) => {
     if (!myPlayer || !room || submitted) return
     setSubmitted(true)
-
     await submitAnswer({
       roomCode,
       roundNum: room.currentRound,
       playerId: myPlayer.id,
       value,
     })
-
     setAnswerCount((c) => c + 1)
   }, [myPlayer, room, submitted, roomCode])
 
-  // 방장이 다음 라운드로 넘기기
   const handleNextRound = useCallback(async () => {
     if (!room || myPlayer?.isHost !== true) return
     const nextRound = room.currentRound + 1
-
     if (nextRound > room.maxRounds) {
       await updateRoomStatus(roomCode, 'finished')
     } else {
@@ -103,30 +93,29 @@ export default function GamePage() {
     }
   }, [room, myPlayer, roomCode])
 
-  // 현재 GamePack (화면 렌더링에만 사용)
   const gamePack = room ? getGamePack(room.gamePackId) : null
   const roundConfig = gamePack && room
     ? gamePack.getRoundConfig(room.currentRound, room.settings)
     : null
 
-  // ─────────────────────────────────────────
-  // 화면 렌더링
-  // ─────────────────────────────────────────
-  if (screen === 'loading') {
-    return <LoadingScreen />
-  }
+  if (screen === 'loading') return <LoadingScreen />
 
   if (screen === 'waiting') {
     return (
       <WaitingScreen
-        room={room!}
-        players={players}
-        myPlayer={myPlayer}
-        onStart={async () => {
-          if (players.length < 2) return
-          await updateRoomStatus(roomCode, 'playing', 1)
-        }}
-      />
+  room={room!}
+  players={players}
+  myPlayer={myPlayer}
+  moleTargetSec={moleTargetSec}
+  onSetMoleTime={async (sec) => {
+    setMoleTargetSec(sec)
+    await updateMoleTargetSec(roomCode, sec)
+  }}
+  onStart={async () => {
+    if (players.length < 2) return
+    await updateRoomStatus(roomCode, 'playing', 1)
+  }}
+/>
     )
   }
 
@@ -137,6 +126,7 @@ export default function GamePage() {
         playerCount={players.length}
         submitted={submitted}
         answerCount={answerCount}
+        moleTargetSec={moleTargetSec}
         onSubmit={handleSubmit}
       />
     )
@@ -165,22 +155,16 @@ export default function GamePage() {
   return <LoadingScreen />
 }
 
-// ─────────────────────────────────────────
-// 헬퍼
-// ─────────────────────────────────────────
 function mapStatusToScreen(status: Room['status']): Screen {
   const map: Record<Room['status'], Screen> = {
     waiting: 'waiting',
     playing: 'round_play',
-    round_end: 'round_result',
+    round_end: 'round_play',
     finished: 'final',
   }
   return map[status] ?? 'loading'
 }
 
-// ─────────────────────────────────────────
-// 하위 컴포넌트 (각각 별도 파일로 분리 권장)
-// ─────────────────────────────────────────
 function LoadingScreen() {
   return (
     <div className="flex items-center justify-center min-h-screen">
@@ -189,9 +173,11 @@ function LoadingScreen() {
   )
 }
 
-function WaitingScreen({ room, players, myPlayer, onStart }: {
+function WaitingScreen({ room, players, myPlayer, onStart, moleTargetSec, onSetMoleTime }: {
   room: Room; players: Player[]; myPlayer: Player | null
   onStart: () => void
+  moleTargetSec: number
+  onSetMoleTime: (sec: number) => void
 }) {
   return (
     <div className="max-w-sm mx-auto p-6">
@@ -213,13 +199,37 @@ function WaitingScreen({ room, players, myPlayer, onStart }: {
       </div>
 
       {myPlayer?.isHost && (
-        <button
-          onClick={onStart}
-          disabled={players.length < 2}
-          className="w-full py-3 rounded-xl bg-purple-600 text-white font-medium disabled:opacity-40"
-        >
-          게임 시작 ({players.length}명)
-        </button>
+        <>
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
+              🦔 두더지 게임 목표 시간
+            </p>
+            <div style={{ display: 'flex', gap: 8 }}>
+              {[15, 30, 45, 60].map(sec => (
+                <button
+                  key={sec}
+                  onClick={() => onSetMoleTime(sec)}
+                  style={{
+                    flex: 1, padding: '10px 0', borderRadius: 10,
+                    border: moleTargetSec === sec ? '2px solid #534AB7' : '1.5px solid #e5e7eb',
+                    background: moleTargetSec === sec ? '#EEEDFE' : '#fff',
+                    color: moleTargetSec === sec ? '#534AB7' : '#374151',
+                    fontSize: 14, fontWeight: 600, cursor: 'pointer',
+                  }}
+                >
+                  {sec}초
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            onClick={onStart}
+            disabled={players.length < 2}
+            className="w-full py-3 rounded-xl bg-purple-600 text-white font-medium disabled:opacity-40"
+          >
+            게임 시작 ({players.length}명)
+          </button>
+        </>
       )}
       {!myPlayer?.isHost && (
         <p className="text-center text-sm text-gray-400">방장이 시작하기를 기다리는 중...</p>
@@ -228,9 +238,10 @@ function WaitingScreen({ room, players, myPlayer, onStart }: {
   )
 }
 
-function RoundPlayScreen({ config, playerCount, submitted, answerCount, onSubmit }: {
+function RoundPlayScreen({ config, playerCount, submitted, answerCount, moleTargetSec, onSubmit }: {
   config: ReturnType<typeof import('@/packs/lunch-sagi').lunchSagiPack.getRoundConfig>
   playerCount: number; submitted: boolean; answerCount: number
+  moleTargetSec: number
   onSubmit: (v: unknown) => void
 }) {
   const [value, setValue] = useState<string>('')
@@ -251,25 +262,162 @@ function RoundPlayScreen({ config, playerCount, submitted, answerCount, onSubmit
 
       {!submitted ? (
         <>
-          <input
-            type="text"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            placeholder="입력하세요"
-            className="w-full p-3 border border-gray-200 rounded-xl text-center text-lg mb-4"
-          />
-          <button
-            onClick={() => value && onSubmit(value)}
-            className="w-full py-3 rounded-xl bg-purple-600 text-white font-medium"
-          >
-            선택 확정
-          </button>
+          {(config.gameType as string) === 'mole' ? (
+            <MoleRoundInline
+              targetSec={moleTargetSec}
+              onSubmit={onSubmit}
+            />
+          ) : (
+            <>
+              <input
+                type="text"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder="입력하세요"
+                className="w-full p-3 border border-gray-200 rounded-xl text-center text-lg mb-4"
+              />
+              <button
+                onClick={() => value && onSubmit(value)}
+                className="w-full py-3 rounded-xl bg-purple-600 text-white font-medium"
+              >
+                선택 확정
+              </button>
+            </>
+          )}
         </>
       ) : (
         <div className="text-center py-8">
           <div className="text-2xl mb-2">✅</div>
           <p className="text-sm text-gray-500">제출 완료! 다른 플레이어를 기다리는 중...</p>
           <p className="text-xs text-gray-400 mt-1">{answerCount}/{playerCount}명 제출</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function MoleRoundInline({ targetSec, onSubmit }: {
+  targetSec: number
+  onSubmit: (v: unknown) => void
+}) {
+  const [started, setStarted] = useState(false)
+  const [elapsed, setElapsed] = useState(0)
+  const [moleCount, setMoleCount] = useState(0)
+  const [molePos, setMolePos] = useState<number | null>(null)
+  const [done, setDone] = useState(false)
+  const [penalty, setPenalty] = useState(0)
+  const startTimeRef = useState(() => ({ current: 0 }))[0]
+  const timerRef = useState(() => ({ current: null as NodeJS.Timeout | null }))[0]
+  const moleTimerRef = useState(() => ({ current: null as NodeJS.Timeout | null }))[0]
+
+  const GRID = 9
+
+  function spawnMole() {
+    const pos = Math.floor(Math.random() * GRID)
+    setMolePos(pos)
+    moleTimerRef.current = setTimeout(() => {
+      setMolePos(null)
+      if (!done) spawnMole()
+    }, 800)
+  }
+
+  function handleStart() {
+    setStarted(true)
+    startTimeRef.current = Date.now()
+    spawnMole()
+    timerRef.current = setInterval(() => {
+      const el = (Date.now() - startTimeRef.current) / 1000
+      setElapsed(el)
+      if (el > targetSec) {
+        const over = el - targetSec
+        setPenalty(Math.floor(over / 10) * 10)
+      }
+    }, 100)
+  }
+
+  function handleStop() {
+    if (!started || done) return
+    setDone(true)
+    clearInterval(timerRef.current!)
+    clearTimeout(moleTimerRef.current!)
+    setMolePos(null)
+    const el = (Date.now() - startTimeRef.current) / 1000
+    const over = Math.max(0, el - targetSec)
+    const pen = Math.floor(over / 10) * 10
+    onSubmit({ moleCount, penalty: pen, elapsedSec: Math.round(el) })
+  }
+
+  function handleMole(i: number) {
+    if (!started || done || molePos !== i) return
+    setMoleCount(c => c + 1)
+    setMolePos(null)
+    clearTimeout(moleTimerRef.current!)
+    spawnMole()
+  }
+
+  const isOver = elapsed > targetSec
+
+  return (
+    <div style={{ textAlign: 'center' }}>
+      {!started && (
+        <div style={{ fontSize: 80, fontWeight: 700, marginBottom: 8, color: '#534AB7' }}>
+          {targetSec}
+        </div>
+      )}
+      {started && isOver && (
+        <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 8, color: '#E24B4A' }}>
+          ⚠️ 시간 초과! -{penalty}점
+        </div>
+      )}
+
+      <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>
+        목표: {targetSec}초 이내
+      </p>
+
+      <p style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>
+        🦔 {moleCount}마리
+      </p>
+
+      <div style={{
+        display: 'grid', gridTemplateColumns: '1fr 1fr 1fr',
+        gap: 10, marginBottom: 20, maxWidth: 300, margin: '0 auto 20px',
+      }}>
+        {Array.from({ length: GRID }).map((_, i) => (
+          <div
+            key={i}
+            onClick={() => handleMole(i)}
+            style={{
+              height: 90, borderRadius: 16,
+              background: molePos === i ? '#F59E0B' : 'var(--color-background-secondary)',
+              border: molePos === i ? '3px solid #D97706' : '2px solid var(--color-border-secondary)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 44, cursor: molePos === i ? 'pointer' : 'default',
+              transition: 'all 0.1s',
+              transform: molePos === i ? 'scale(1.05)' : 'scale(1)',
+            }}
+          >
+            {molePos === i ? '🦔' : ''}
+          </div>
+        ))}
+      </div>
+
+      {!started ? (
+        <button onClick={handleStart} style={{
+          width: '100%', padding: 16, borderRadius: 10, border: 'none',
+          background: '#534AB7', color: '#fff', fontSize: 18, fontWeight: 600, cursor: 'pointer',
+        }}>
+          시작!
+        </button>
+      ) : !done ? (
+        <button onClick={handleStop} style={{
+          width: '100%', padding: 16, borderRadius: 10, border: 'none',
+          background: '#E24B4A', color: '#fff', fontSize: 18, fontWeight: 700, cursor: 'pointer',
+        }}>
+          STOP
+        </button>
+      ) : (
+        <div style={{ fontSize: 16, color: 'var(--color-text-tertiary)' }}>
+          제출 완료! 결과 기다리는 중...
         </div>
       )}
     </div>
@@ -307,7 +455,6 @@ function FinalScreen({ roomCode, players, settings }: {
       <div className="text-center mb-6">
         <div className="text-3xl mb-2">🏆</div>
         <h1 className="text-xl font-medium">최종 결과</h1>
-        <p className="text-sm text-gray-500 mt-1">오늘의 점심 분담</p>
       </div>
 
       <div className="space-y-2 mb-4">
@@ -327,11 +474,6 @@ function FinalScreen({ roomCode, players, settings }: {
             </div>
           )
         })}
-      </div>
-
-      <div className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
-        <span className="text-sm font-medium">총 점심 금액</span>
-        <span className="text-sm font-medium">{totalAmount.toLocaleString()}원</span>
       </div>
 
       <button

@@ -54,9 +54,35 @@ export async function POST(req: NextRequest) {
       })
     )
 
+    // 라운드 결과를 settings.roundHistory에 저장
+    const roundConfig = pack.getRoundConfig(round, room.settings ?? {})
+    const prevHistory = (room.settings?.roundHistory as unknown[] | undefined) ?? []
+    const newHistory = [
+      ...prevHistory,
+      {
+        title: roundConfig.title,
+        results: roundScores.map(r => ({
+          playerId: r.playerId,
+          detail: r.detail,
+        }))
+      }
+    ]
+
+    await supabase.from('rooms').update({
+      settings: { ...room.settings, roundHistory: newHistory }
+    }).eq('code', roomCode)
+
     const isLastRound = round >= room.max_rounds
-    // 항상 round_end로 전환 — 방장이 다음 게임 선택 또는 최종 결과 버튼을 눌러야 다음 단계로 진행
-    await supabase.from('rooms').update({ status: 'round_end' }).eq('code', roomCode)
+
+    if (isLastRound) {
+  await supabase.from('rooms').update({ status: 'finished' }).eq('code', roomCode)
+} else {
+  await supabase.from('rooms').update({
+    status: 'playing',
+    current_round: round + 1,
+  }).eq('code', roomCode)
+}
+
 
     return NextResponse.json({ allSubmitted: true, roundScores, isLastRound })
   }

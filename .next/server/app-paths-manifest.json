@@ -1,3 +1,11 @@
 {
-  "/page": "app/page.js"
+  "/room/[code]/result/page": "app/room/[code]/result/page.js",
+  "/room/[code]/play/page": "app/room/[code]/play/page.js",
+  "/page": "app/page.js",
+  "/room/[code]/wait/page": "app/room/[code]/wait/page.js",
+  "/room/[code]/join/page": "app/room/[code]/join/page.js",
+  "/api/players/route": "app/api/players/route.js",
+  "/api/answers/route": "app/api/answers/route.js",
+  "/api/rooms/route": "app/api/rooms/route.js",
+  "/api/mole-time/route": "app/api/mole-time/route.js"
 }
