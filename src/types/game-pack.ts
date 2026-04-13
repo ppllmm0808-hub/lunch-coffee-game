@@ -23,7 +23,7 @@ export interface RoundConfig {
   timeLimitSec: number          // 라운드당 제한 시간
   title: string                 // '카드 게임'
   instruction: string           // '카드 2장을 받았습니다. 합이 10에 가장 가까운 사람이 이깁니다. 1장 교체 가능합니다.'
-  gameType: 'card' | 'animal' | 'timing'  // 미니게임 타입
+  gameType: 'card' | 'animal' | 'timing' | 'mole' // 미니게임 타입
 }
 
 // 플레이어가 제출하는 답변 — 게임마다 value 형태가 다름
