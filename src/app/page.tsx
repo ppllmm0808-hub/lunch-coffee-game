@@ -98,7 +98,28 @@ export default function HomePage() {
   <div>📱 <strong>같은 공간</strong>: QR코드 스캔으로 입장</div>
   <div>🔗 <strong>다른 공간</strong>: 방장이 보낸 링크로 입장</div>
 </div>
-
+ <button
+  onClick={() => {
+    if (navigator.share) {
+      navigator.share({
+        title: '점심 내기 플랫폼',
+        text: '꼴찌가 점심 더 낸다! 같이 게임해요 🍱',
+        url: 'https://lunch-coffee-game.vercel.app',
+      })
+    } else {
+      navigator.clipboard.writeText('https://lunch-coffee-game.vercel.app')
+      alert('링크가 복사됐습니다!')
+    }
+  }}
+  style={{
+    width: '100%', marginTop: 12, padding: '12px 0',
+    borderRadius: 12, border: '1.5px solid #534AB7',
+    background: '#EEEDFE', color: '#534AB7',
+    fontSize: 15, fontWeight: 600, cursor: 'pointer',
+  }}
+>
+  📲 친구에게 게임 링크 보내기
+</button>    
       {/* 탭 */}
       <div style={{ display: 'flex', marginBottom: 20, border: '0.5px solid var(--color-border-tertiary)', borderRadius: 10, overflow: 'hidden' }}>
         {(['create', 'join'] as const).map(t => (
