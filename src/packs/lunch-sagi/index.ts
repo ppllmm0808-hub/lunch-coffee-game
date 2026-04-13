@@ -121,20 +121,27 @@ function calcMole(answers: Answer[]): RoundResult[] {
     let penalty = 0
     let detail = ''
 
-    if (over >= 30) {
-      // 30초 이상 초과 → 0점
-      return {
-        playerId: a.playerId,
-        scoreDelta: 0,
-        detail: `두더지 ${moleCount}마리 (${over}초 초과) → 0점`,
-      }
-    } else if (over >= 20) {
-      penalty = 200
-    } else if (over >= 10) {
-      penalty = 150
-    } else if (over > 0) {
-      penalty = 100
-    }
+    if (over >= 15) {
+  return {
+    playerId: a.playerId,
+    scoreDelta: 0,
+    detail: `두더지 ${moleCount}마리 (${over}초 초과) → 0점`,
+  }
+} else if (over >= 10) {
+  return {
+    playerId: a.playerId,
+    scoreDelta: 50,
+    detail: `두더지 ${moleCount}마리 (${over}초 초과) → 50점`,
+  }
+} else if (over >= 5) {
+  return {
+    playerId: a.playerId,
+    scoreDelta: 100,
+    detail: `두더지 ${moleCount}마리 (${over}초 초과) → 100점`,
+  }
+}
+
+const score = moleCount * 10
 
     const score = Math.max(0, moleCount * 10 - penalty)
     return {
