@@ -93,7 +93,11 @@ export default function HomePage() {
         <div style={{ fontSize: 44, marginBottom: 8 }}>🍱</div>
         <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0 }}>점심 내기 플랫폼</h1>
         <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)', marginTop: 6 }}>꼴찌가 점심 더 낸다</p>
-      </div>
+<div style={{ marginTop: 16, padding: '12px 16px', borderRadius: 12, background: '#F9F9FF', border: '1px solid #EEEDFE', textAlign: 'left', fontSize: 13, color: 'var(--color-text-secondary)', lineHeight: 1.8 }}>
+  <div>🏠 <strong>방장</strong>: 방 만들기 버튼으로 방 생성</div>
+  <div>📱 <strong>같은 공간</strong>: QR코드 스캔으로 입장</div>
+  <div>🔗 <strong>다른 공간</strong>: 방장이 보낸 링크로 입장</div>
+</div>
 
       {/* 탭 */}
       <div style={{ display: 'flex', marginBottom: 20, border: '0.5px solid var(--color-border-tertiary)', borderRadius: 10, overflow: 'hidden' }}>
