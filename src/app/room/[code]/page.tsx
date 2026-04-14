@@ -28,6 +28,7 @@ export default function GamePage() {
   const [answerCount, setAnswerCount] = useState(0)
   const [moleTargetSec, setMoleTargetSec] = useState(30)
   const [storedPlayerId, setStoredPlayerId] = useState('')
+  const [timeoutCountdown, setTimeoutCountdown] = useState<number | null>(null)
 
   useEffect(() => {
     try {
@@ -83,6 +84,26 @@ export default function GamePage() {
     setAnswerCount((c) => c + 1)
   }, [myPlayer, room, submitted, roomCode])
 
+ useEffect(() => {
+  if (screen !== 'round_play' || submitted) return
+  const timer = setTimeout(async () => {
+    if (!submitted) {
+      await handleSubmit({ timeout: true, moleCount: 0, elapsedSec: 999, ms: 0 })
+    }
+  }, 30000)
+  let count = 30
+  const countdown = setInterval(() => {
+    count--
+    setTimeoutCountdown(count)
+    if (count <= 0) clearInterval(countdown)
+  }, 1000)
+  return () => {
+    clearTimeout(timer)
+    clearInterval(countdown)
+    setTimeoutCountdown(null)
+  }
+}, [screen, submitted]) 
+
   const handleNextRound = useCallback(async () => {
     if (!room || myPlayer?.isHost !== true) return
     const nextRound = room.currentRound + 1
@@ -127,6 +148,7 @@ export default function GamePage() {
         submitted={submitted}
         answerCount={answerCount}
         moleTargetSec={moleTargetSec}
+        timeoutCountdown={timeoutCountdown}
         onSubmit={handleSubmit}
       />
     )
@@ -242,6 +264,7 @@ function RoundPlayScreen({ config, playerCount, submitted, answerCount, moleTarg
   config: ReturnType<typeof import('@/packs/lunch-sagi').lunchSagiPack.getRoundConfig>
   playerCount: number; submitted: boolean; answerCount: number
   moleTargetSec: number
+  timeoutCountdown: number | null
   onSubmit: (v: unknown) => void
 }) {
   const [value, setValue] = useState<string>('')

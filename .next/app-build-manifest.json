@@ -22,13 +22,6 @@
       "static/chunks/main-app-f4152ffc23d47330.js",
       "static/chunks/app/room/[code]/join/page-59a6f8d2cc03a4f6.js"
     ],
-    "/page": [
-      "static/chunks/webpack-c84e7b3dbc67fa68.js",
-      "static/chunks/fd9d1056-23bdddb1df3a91c8.js",
-      "static/chunks/23-16037f8c38fd9176.js",
-      "static/chunks/main-app-f4152ffc23d47330.js",
-      "static/chunks/app/page-655ef7787fd79e89.js"
-    ],
     "/room/[code]/page": [
       "static/chunks/webpack-c84e7b3dbc67fa68.js",
       "static/chunks/fd9d1056-23bdddb1df3a91c8.js",
@@ -36,7 +29,7 @@
       "static/chunks/main-app-f4152ffc23d47330.js",
       "static/chunks/44530001-3911c617b0c637ca.js",
       "static/chunks/530-92f20c562f3d82db.js",
-      "static/chunks/app/room/[code]/page-7e3ca01c75ae217c.js"
+      "static/chunks/app/room/[code]/page-4b953385505adab9.js"
     ],
     "/room/[code]/result/page": [
       "static/chunks/webpack-c84e7b3dbc67fa68.js",
@@ -55,6 +48,13 @@
       "static/chunks/44530001-3911c617b0c637ca.js",
       "static/chunks/530-92f20c562f3d82db.js",
       "static/chunks/app/room/[code]/play/page-0594e37e1aeed2f0.js"
+    ],
+    "/page": [
+      "static/chunks/webpack-c84e7b3dbc67fa68.js",
+      "static/chunks/fd9d1056-23bdddb1df3a91c8.js",
+      "static/chunks/23-16037f8c38fd9176.js",
+      "static/chunks/main-app-f4152ffc23d47330.js",
+      "static/chunks/app/page-655ef7787fd79e89.js"
     ],
     "/room/[code]/wait/page": [
       "static/chunks/webpack-c84e7b3dbc67fa68.js",
