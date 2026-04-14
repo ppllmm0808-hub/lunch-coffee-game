@@ -118,36 +118,31 @@ function calcMole(answers: Answer[]): RoundResult[] {
     const targetSec = Number(v.targetSec ?? 30)
     const over = Math.max(0, elapsedSec - targetSec)
 
-    let penalty = 0
-    let detail = ''
-
     if (over >= 15) {
-  return {
-    playerId: a.playerId,
-    scoreDelta: 0,
-    detail: `두더지 ${moleCount}마리 (${over}초 초과) → 0점`,
-  }
-} else if (over >= 10) {
-  return {
-    playerId: a.playerId,
-    scoreDelta: 50,
-    detail: `두더지 ${moleCount}마리 (${over}초 초과) → 50점`,
-  }
-} else if (over >= 5) {
-  return {
-    playerId: a.playerId,
-    scoreDelta: 100,
-    detail: `두더지 ${moleCount}마리 (${over}초 초과) → 100점`,
-  }
-}
+      return {
+        playerId: a.playerId,
+        scoreDelta: 0,
+        detail: `두더지 ${moleCount}마리 (${over}초 초과) → 0점`,
+      }
+    } else if (over >= 10) {
+      return {
+        playerId: a.playerId,
+        scoreDelta: 50,
+        detail: `두더지 ${moleCount}마리 (${over}초 초과) → 50점`,
+      }
+    } else if (over >= 5) {
+      return {
+        playerId: a.playerId,
+        scoreDelta: 100,
+        detail: `두더지 ${moleCount}마리 (${over}초 초과) → 100점`,
+      }
+    }
 
-const score = moleCount * 10
-
-    const score = Math.max(0, moleCount * 10 - penalty)
+    const score = Math.max(0, moleCount * 10)
     return {
       playerId: a.playerId,
       scoreDelta: score,
-      detail: `두더지 ${moleCount}마리${penalty > 0 ? ` (패널티 -${penalty})` : ''} → ${score}점`,
+      detail: `두더지 ${moleCount}마리 → ${score}점`,
     }
   })
 }

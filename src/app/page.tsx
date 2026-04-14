@@ -119,7 +119,9 @@ export default function HomePage() {
   }}
 >
   📲 친구에게 게임 링크 보내기
-</button>    
+</button>
+      </div>
+
       {/* 탭 */}
       <div style={{ display: 'flex', marginBottom: 20, border: '0.5px solid var(--color-border-tertiary)', borderRadius: 10, overflow: 'hidden' }}>
         {(['create', 'join'] as const).map(t => (
