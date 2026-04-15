@@ -85,7 +85,7 @@ export default function GamePage() {
   }, [myPlayer, room, submitted, roomCode])
 
  useEffect(() => {
-  if (screen !== 'round_play' || submitted) return
+  if (screen !== 'round_play' || submitted || roundConfig?.gameType === 'mole') return
   const timer = setTimeout(async () => {
     if (!submitted) {
       await handleSubmit({ timeout: true, moleCount: 0, elapsedSec: 999, ms: 0 })
