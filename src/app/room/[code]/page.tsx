@@ -314,6 +314,17 @@ function MoleRoundInline({ targetSec, onSubmit }: {
   const timerRef = useState(() => ({ current: null as NodeJS.Timeout | null }))[0]
   const moleTimerRef = useState(() => ({ current: null as NodeJS.Timeout | null }))[0]
 
+useEffect(() => {
+    if (!started || done) return
+    const autoTimer = setTimeout(() => {
+      const el = (Date.now() - startTimeRef.current) / 1000
+      const pen = Math.max(0, Math.round(el - targetSec) * 2)
+      onSubmit({ moleCount, penalty: pen, elapsedSec: Math.round(el), targetSec })
+      setDone(true)
+    }, 120 * 1000)
+    return () => clearTimeout(autoTimer)
+  }, [started, done])
+  
   const GRID = 9
 
   function spawnMole() {
