@@ -359,7 +359,7 @@ function MoleRoundInline({ targetSec, onSubmit }: {
     spawnMole()
   }
 
-  const isOver = elapsed > targetSec
+  
 
   return (
     <div style={{ textAlign: 'center' }}>
@@ -369,9 +369,7 @@ function MoleRoundInline({ targetSec, onSubmit }: {
         </div>
       )}
       
-      <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>
-        목표: {targetSec}초 이내
-      </p>
+      
 
       <p style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>
         🦔 {moleCount}마리
