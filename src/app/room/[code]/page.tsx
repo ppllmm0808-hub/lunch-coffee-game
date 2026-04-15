@@ -86,7 +86,7 @@ export default function GamePage() {
   }, [myPlayer, room, submitted, roomCode])
 
  useEffect(() => {
-  if (screen !== 'round_play' || submitted || roundConfig?.gameType === 'mole') return
+  if (screen !== 'round_play' || submitted || room?.settings?.currentGameType === 'mole') return
   const timer = setTimeout(async () => {
     if (!submitted) {
       await handleSubmit({ timeout: true, moleCount: 0, elapsedSec: 999, ms: 0 })
@@ -223,28 +223,8 @@ function WaitingScreen({ room, players, myPlayer, onStart, moleTargetSec, onSetM
 
       {myPlayer?.isHost && (
         <>
-          <div style={{ marginBottom: 16 }}>
-            <p style={{ fontSize: 13, fontWeight: 600, marginBottom: 8 }}>
-              🦔 두더지 게임 목표 시간
-            </p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              {[15, 30, 45, 60].map(sec => (
-                <button
-                  key={sec}
-                  onClick={() => onSetMoleTime(sec)}
-                  style={{
-                    flex: 1, padding: '10px 0', borderRadius: 10,
-                    border: moleTargetSec === sec ? '2px solid #534AB7' : '1.5px solid #e5e7eb',
-                    background: moleTargetSec === sec ? '#EEEDFE' : '#fff',
-                    color: moleTargetSec === sec ? '#534AB7' : '#374151',
-                    fontSize: 14, fontWeight: 600, cursor: 'pointer',
-                  }}
-                >
-                  {sec}초
-                </button>
-              ))}
-            </div>
-          </div>
+          
+          
           <button
             onClick={onStart}
             disabled={players.length < 2}

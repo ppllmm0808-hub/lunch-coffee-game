@@ -1,14 +1,14 @@
 {
   "/_not-found/page": "app/_not-found/page.js",
-  "/room/[code]/page": "app/room/[code]/page.js",
-  "/api/mole-time/route": "app/api/mole-time/route.js",
-  "/api/round/calculate/route": "app/api/round/calculate/route.js",
+  "/api/players/route": "app/api/players/route.js",
   "/api/rooms/route": "app/api/rooms/route.js",
   "/api/answers/route": "app/api/answers/route.js",
+  "/api/round/calculate/route": "app/api/round/calculate/route.js",
+  "/room/[code]/join/page": "app/room/[code]/join/page.js",
   "/room/[code]/play/page": "app/room/[code]/play/page.js",
-  "/api/players/route": "app/api/players/route.js",
   "/page": "app/page.js",
   "/room/[code]/result/page": "app/room/[code]/result/page.js",
-  "/room/[code]/join/page": "app/room/[code]/join/page.js",
-  "/room/[code]/wait/page": "app/room/[code]/wait/page.js"
+  "/room/[code]/page": "app/room/[code]/page.js",
+  "/room/[code]/wait/page": "app/room/[code]/wait/page.js",
+  "/api/mole-time/route": "app/api/mole-time/route.js"
 }
