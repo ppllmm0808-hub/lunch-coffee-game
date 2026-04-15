@@ -40,7 +40,7 @@ const ROUND_CONFIGS: Omit<RoundConfig, 'roundNum'>[] = [
     timeLimitSec: 90,
     gameType: 'mole',
     title: '두더지 게임',
-    instruction: '두더지가 나타나면 빠르게 탭하세요!\n⚠️ STOP 버튼을 누르는 순간 즉시 종료됩니다.\n실수로 눌러도 되돌릴 수 없어요!\n목표 시간을 넘기면 10초마다 -10점!\n신중하게, 하지만 빠르게!',
+    instruction: '두더지가 나타나면 빠르게 탭하세요!\n⚠️ STOP 버튼을 누르는 순간 즉시 종료됩니다.\n실수로 눌러도 되돌릴 수 없어요!\n목표 시간을 넘기면 패널티 부여!\n신중하게, 하지만 빠르게!',
   },
   {
     timeLimitSec: 30,

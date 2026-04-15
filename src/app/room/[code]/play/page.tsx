@@ -190,10 +190,10 @@ export default function PlayPage({ params }: { params: { code: string } }) {
           {/* 두더지 게임 */}
           {(roundConfig.gameType as string) === 'mole' && (
   <MoleRound
-  key={`mole-${room.settings.moleTargetSec ?? 0}`}
+  key={`mole-30`}
   isHost={isHost}
   roomCode={code}
-  targetSec={(room.settings.moleTargetSec as number) ?? 0}
+  targetSec={30}
   onSubmit={(v: Record<string, unknown>) => submitAnswer(v)}
 />
 )}
@@ -445,42 +445,7 @@ function MoleRound({ isHost, roomCode, targetSec, onSubmit }: {
     clearTimeout(moleTimerRef.current!)
     spawnMole()
   }
-
-  const isOver = elapsed > localTarget
-
-  // 방장 시간 설정 화면
-  if (!ready && isHost) {
-    return (
-      <div style={{ textAlign: 'center' }}>
-        <p style={{ fontSize: 15, fontWeight: 600, marginBottom: 16 }}>⏱️ 목표 시간 설정</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 8 }}>
-          {[30, 60, 90, 120].map(sec => (
-            <button
-              key={sec}
-              onClick={() => handleSelectTime(sec)}
-              style={{
-                padding: '20px 0', borderRadius: 12, border: '1.5px solid var(--color-border-secondary)',
-                background: 'var(--color-background-secondary)',
-                fontSize: 18, fontWeight: 700, cursor: 'pointer',
-              }}
-            >
-              {sec}초
-            </button>
-          ))}
-        </div>
-      </div>
-    )
-  }
-
-  // 참가자 대기 화면
-  if (!ready && !isHost) {
-    return (
-      <div style={{ textAlign: 'center', padding: '3rem 0' }}>
-        <div style={{ fontSize: 36, marginBottom: 12 }}>⏳</div>
-        <p style={{ fontSize: 15, color: 'var(--color-text-tertiary)' }}>방장이 시간 설정 중...</p>
-      </div>
-    )
-  }
+  
 
   return (
     <div style={{ textAlign: 'center' }}>
@@ -489,15 +454,7 @@ function MoleRound({ isHost, roomCode, targetSec, onSubmit }: {
           {localTarget}
         </div>
       )}
-      {started && isOver && (
-        <div style={{ fontSize: 32, fontWeight: 700, marginBottom: 8, color: '#E24B4A' }}>
-          ⚠️ 시간 초과! -{penalty}점
-        </div>
-      )}
-
-      <p style={{ fontSize: 13, color: 'var(--color-text-tertiary)', marginBottom: 4 }}>
-        목표: {localTarget}초 이내
-      </p>
+      
 
       <p style={{ fontSize: 20, fontWeight: 700, marginBottom: 16 }}>
         🦔 {moleCount}마리
