@@ -65,10 +65,11 @@ export default function GamePage() {
       setPlayers(ps)
       setMyPlayer(ps.find((p) => p.id === storedPlayerId) ?? null)
     })
-
+    const pollInterval = setInterval(loadRoom, 3000)
     return () => {
       roomSub.unsubscribe()
       playerSub.unsubscribe()
+      clearInterval(pollInterval)
     }
   }, [roomCode, storedPlayerId])
 
@@ -102,7 +103,7 @@ export default function GamePage() {
     clearInterval(countdown)
     setTimeoutCountdown(null)
   }
-}, [screen, submitted]) 
+}, [screen, submitted, roundConfig])
 
   const handleNextRound = useCallback(async () => {
     if (!room || myPlayer?.isHost !== true) return
