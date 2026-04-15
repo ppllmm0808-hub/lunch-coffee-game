@@ -368,7 +368,7 @@ function MoleRoundInline({ targetSec, onSubmit }: {
     const el = (Date.now() - startTimeRef.current) / 1000
     const over = Math.max(0, el - targetSec)
     const pen = Math.floor(over / 10) * 10
-    onSubmit({ moleCount, penalty: pen, elapsedSec: Math.round(el) })
+    onSubmit({ moleCount, penalty: pen, elapsedSec: Math.round(el), targetSec })
   }
 
   function handleMole(i: number) {
