@@ -103,7 +103,7 @@ export default function GamePage() {
     clearInterval(countdown)
     setTimeoutCountdown(null)
   }
-}, [screen, submitted, roundConfig])
+}, [screen, submitted])
 
   const handleNextRound = useCallback(async () => {
     if (!room || myPlayer?.isHost !== true) return
