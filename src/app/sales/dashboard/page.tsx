@@ -35,6 +35,7 @@ export default function SalesDashboard() {
     salesSupabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) { router.push('/sales/login'); return }
       const p = await getProfile(data.session.user.id)
+      if (!p) { router.push('/sales/login'); return }
       setProfile(p)
       await load(data.session.user.id, selectedDate)
     })
