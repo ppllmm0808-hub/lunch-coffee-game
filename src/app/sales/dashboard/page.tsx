@@ -34,10 +34,16 @@ export default function SalesDashboard() {
   useEffect(() => {
     salesSupabase.auth.getSession().then(async ({ data }) => {
       if (!data.session) { router.push('/sales/login'); return }
-      const p = await getProfile(data.session.user.id)
-      if (!p) { router.push('/sales/login'); return }
-      setProfile(p)
-      await load(data.session.user.id, selectedDate)
+      try {
+        const p = await getProfile(data.session.user.id)
+        if (!p) { router.push('/sales/login'); return }
+        setProfile(p)
+        await load(data.session.user.id, selectedDate)
+      } catch {
+        router.push('/sales/login')
+      }
+    }).catch(() => {
+      router.push('/sales/login')
     })
   }, [router, load, selectedDate])
 
