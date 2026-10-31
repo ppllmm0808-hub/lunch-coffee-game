@@ -27,7 +27,7 @@ export default function SalesLoginPage() {
       setError('이메일 확인 후 로그인하세요.')
     } else {
       const { error } = await salesSupabase.auth.signInWithPassword({ email, password })
-      if (error) { setError('이메일 또는 비밀번호가 틀렸습니다.'); setLoading(false); return }
+      if (error) { setError(error.message); setLoading(false); return }
       router.push('/sales/dashboard')
     }
     setLoading(false)
