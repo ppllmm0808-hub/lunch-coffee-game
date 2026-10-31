@@ -7,14 +7,15 @@ export async function POST(req: NextRequest) {
   const { roomCode, playerId, value } = await req.json()
 
   // 방 정보 조회
-  const { data: room } = await supabase
+  const { data: roomData } = await supabase
     .from('rooms')
     .select('*')
     .eq('code', roomCode)
     .single()
 
-  if (!room) return NextResponse.json({ error: '방 없음' }, { status: 404 })
+  if (!roomData) return NextResponse.json({ error: '방 없음' }, { status: 404 })
 
+  const room = roomData as import('@/lib/supabase').DbRoom
   const round = room.current_round
 
   // 답변 저장
